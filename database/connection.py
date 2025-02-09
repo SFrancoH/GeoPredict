@@ -1,18 +1,26 @@
-from sqlachemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import sessionmaker 
 
-import json
+class DatabaseConnection:
+    
+    def __init__(self, db_url):
+        # Inicializa la conexión a la base de datos especificada en db_url
 
-with open('config.json', 'r') as file:
-    data = json.load(file)
+        self.db_url = db_url 
+        self.engine = create_engine(self.db_url, echo=True)
+        self.SessionLocal = sessionmaker(bind=self.engine) 
 
-engine = create_engine(f"sqlite:///{data["censo_db"]}",echo=True)
-Session = sessionmaker(bind=engine)
+        # Mapeo automático de las tablas de la base de datos a objetos de Python
+        self.Base = automap_base()
+        self.Base.prepare(self.engine, reflect=True)
+        
+        # Cargar metadatos
+        self.metadata = MetaData()
+        self.metadata.reflect(bind=self.engine)
 
-def get_db():
-    db = Session()
-    try:
-        yield db
-    finally:
-        db.close()
-         
+    def get_session(self): 
+        return self.SessionLocal()
+
+    def close_session(self):
+        self.engine.dispose()
